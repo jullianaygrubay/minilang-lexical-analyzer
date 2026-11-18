@@ -10,6 +10,18 @@ class Token:
         return f"Token({self.type:<12} | {self.lexeme:<10} | Line {self.line}, Col {self.column})"
 
 
+class LexicalError:
+    def __init__(self, message, lexeme, line, column, trace=None):
+        self.message = message
+        self.lexeme = lexeme
+        self.line = line
+        self.column = column
+        self.trace = trace or []
+
+    def __repr__(self):
+        return f"LexicalError({self.message:<34} | {self.lexeme:<10} | Line {self.line}, Col {self.column})"
+
+
 class MiniLangLexer:
     KEYWORDS = {"START", "END", "FUNCTION", "RETURN", "LET", "INT", "STR", "VOID"}
     DELIMITERS = {'(', ')', '{', '}', ',', ':', ';'}
@@ -40,11 +52,9 @@ class MiniLangLexer:
             char = self.current_char()
             start_line, start_col = self.line, self.column
 
-            # q0 -> q0: Whitespace
             if char in {' ', '\t', '\r', '\n'}:
                 self.advance()
 
-            # q0 -> q1: Identifier or Keyword
             elif char.isalpha() or char == '_':
                 first = self.advance()
                 lexeme = first
@@ -57,7 +67,24 @@ class MiniLangLexer:
                 trace.append(f"q1 --(delimiter/space)--> q0 [ACCEPT: {token_type}]")
                 self.tokens.append(Token(token_type, lexeme, start_line, start_col, trace))
 
-            # q0 -> q7: Delimiters
+            # q0 -> q2: Integer Literal (or malformed -> qe)
+            elif char.isdigit():
+                first = self.advance()
+                lexeme, trace, is_malformed = first, [f"q0 --('{first}')--> q2"], False
+                while self.current_char() is not None and (self.current_char().isalnum() or self.current_char() in {'_', '.'}):
+                    ch = self.advance()
+                    lexeme += ch
+                    if not ch.isdigit():
+                        is_malformed = True
+                        trace.append(f"q2 --('{ch}')--> qe [ERROR: Invalid char in integer]")
+                    else:
+                        trace.append(f"qe --('{ch}')--> qe" if is_malformed else f"q2 --('{ch}')--> q2")
+                if is_malformed:
+                    self.errors.append(LexicalError("Invalid identifier / malformed number", lexeme, start_line, start_col, trace))
+                else:
+                    trace.append("q2 --(delimiter/space)--> q0 [ACCEPT: INT_LITERAL]")
+                    self.tokens.append(Token("INT_LITERAL", lexeme, start_line, start_col, trace))
+
             elif char in self.DELIMITERS:
                 lexeme = self.advance()
                 self.tokens.append(Token("DELIMITER", lexeme, start_line, start_col, [f"q0 --('{lexeme}')--> q7", "q7 --> q0 [ACCEPT: DELIMITER]"]))
@@ -69,6 +96,6 @@ class MiniLangLexer:
 
 
 if __name__ == "__main__":
-    tokens, _ = MiniLangLexer("START display(score); END").tokenize()
-    for t in tokens:
-        print(t)
+    tokens, errors = MiniLangLexer("START 100 123abc END").tokenize()
+    print("Tokens:", tokens)
+    print("Errors:", errors)
