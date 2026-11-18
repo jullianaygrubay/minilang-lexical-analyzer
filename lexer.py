@@ -7,7 +7,7 @@ class Token:
         self.trace = trace or []
 
     def __repr__(self):
-        return f"Token({self.type:<12} | {self.lexeme:<10} | Line {self.line}, Col {self.column})"
+        return f"Token({self.type:<14} | {self.lexeme:<12} | Line {self.line}, Col {self.column})"
 
 
 class LexicalError:
@@ -19,7 +19,7 @@ class LexicalError:
         self.trace = trace or []
 
     def __repr__(self):
-        return f"LexicalError({self.message:<34} | {self.lexeme:<10} | Line {self.line}, Col {self.column})"
+        return f"LexicalError({self.message:<34} | {self.lexeme:<12} | Line {self.line}, Col {self.column})"
 
 
 class MiniLangLexer:
@@ -67,7 +67,6 @@ class MiniLangLexer:
                 trace.append(f"q1 --(delimiter/space)--> q0 [ACCEPT: {token_type}]")
                 self.tokens.append(Token(token_type, lexeme, start_line, start_col, trace))
 
-            # q0 -> q2: Integer Literal (or malformed -> qe)
             elif char.isdigit():
                 first = self.advance()
                 lexeme, trace, is_malformed = first, [f"q0 --('{first}')--> q2"], False
@@ -85,6 +84,21 @@ class MiniLangLexer:
                     trace.append("q2 --(delimiter/space)--> q0 [ACCEPT: INT_LITERAL]")
                     self.tokens.append(Token("INT_LITERAL", lexeme, start_line, start_col, trace))
 
+            # q0 -> q3: String Literal
+            elif char == '"':
+                lexeme, trace = self.advance(), ["q0 --('\"')--> q3"]
+                while self.current_char() is not None and self.current_char() not in {'"', '\n'}:
+                    ch = self.advance()
+                    lexeme += ch
+                    trace.append(f"q3 --('{ch}')--> q3")
+                if self.current_char() == '"':
+                    lexeme += self.advance()
+                    trace.append("q3 --('\"')--> q0 [ACCEPT: STRING_LITERAL]")
+                    self.tokens.append(Token("STRING_LITERAL", lexeme, start_line, start_col, trace))
+                else:
+                    trace.append("q3 --(newline/EOF)--> qe [ERROR: Unclosed string]")
+                    self.errors.append(LexicalError("Unclosed string literal", lexeme, start_line, start_col, trace))
+
             elif char in self.DELIMITERS:
                 lexeme = self.advance()
                 self.tokens.append(Token("DELIMITER", lexeme, start_line, start_col, [f"q0 --('{lexeme}')--> q7", "q7 --> q0 [ACCEPT: DELIMITER]"]))
@@ -93,9 +107,3 @@ class MiniLangLexer:
                 self.advance()
 
         return self.tokens, self.errors
-
-
-if __name__ == "__main__":
-    tokens, errors = MiniLangLexer("START 100 123abc END").tokenize()
-    print("Tokens:", tokens)
-    print("Errors:", errors)
