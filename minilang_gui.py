@@ -67,12 +67,13 @@ END"""
         right_pane = tk.PanedWindow(main_pane, orient=tk.VERTICAL, bg="#1e1e2e", sashwidth=6)
 
         token_frame = tk.Frame(right_pane, bg="#1e1e2e")
-        self.token_header = tk.Label(token_frame, text="Recognized Tokens (0)", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#a6e3a1")
+        self.token_header = tk.Label(token_frame, text="Recognized Tokens (0) — Click any row to inspect DFA trace", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#a6e3a1")
         self.token_header.pack(anchor="w", pady=(0, 5))
         self.token_tree = ttk.Treeview(token_frame, columns=("idx", "line", "col", "lexeme", "type"), show="headings")
         for col, title, w in [("idx", "#", 40), ("line", "Line", 50), ("col", "Col", 50), ("lexeme", "Lexeme", 180), ("type", "Token Category", 160)]:
             self.token_tree.heading(col, text=title)
             self.token_tree.column(col, width=w, anchor="center" if col in {"idx", "line", "col"} else "w")
+        self.token_tree.bind("<<TreeviewSelect>>", self.on_token_select)
         self.token_tree.pack(fill=tk.BOTH, expand=True)
         right_pane.add(token_frame, height=270)
 
@@ -84,12 +85,13 @@ END"""
         right_pane.add(trace_frame, height=150)
 
         error_frame = tk.Frame(right_pane, bg="#1e1e2e")
-        self.error_header = tk.Label(error_frame, text="Lexical Errors (0)", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#f38ba8")
+        self.error_header = tk.Label(error_frame, text="Lexical Errors (0) — Click any row to inspect error path", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#f38ba8")
         self.error_header.pack(anchor="w", pady=(0, 5))
         self.error_tree = ttk.Treeview(error_frame, columns=("idx", "line", "col", "lexeme", "msg"), show="headings", height=4)
         for col, title, w in [("idx", "#", 40), ("line", "Line", 50), ("col", "Col", 50), ("lexeme", "Invalid Lexeme", 130), ("msg", "Error Description", 230)]:
             self.error_tree.heading(col, text=title)
             self.error_tree.column(col, width=w, anchor="center" if col in {"idx", "line", "col"} else "w")
+        self.error_tree.bind("<<TreeviewSelect>>", self.on_error_select)
         self.error_tree.pack(fill=tk.BOTH, expand=True)
         right_pane.add(error_frame)
         main_pane.add(right_pane)
@@ -108,6 +110,20 @@ END"""
             self.trace_box.insert(tk.END, f"Step {i}: {step}\n")
         self.trace_box.config(state=tk.DISABLED)
 
+    def on_token_select(self, event):
+        sel = self.token_tree.selection()
+        if sel:
+            self.error_tree.selection_remove(self.error_tree.selection())
+            tok = self.current_tokens[int(self.token_tree.item(sel[0])["values"][0]) - 1]
+            self.display_trace(f"Token '{tok.lexeme}' ({tok.type})", tok.trace, False)
+
+    def on_error_select(self, event):
+        sel = self.error_tree.selection()
+        if sel:
+            self.token_tree.selection_remove(self.token_tree.selection())
+            err = self.current_errors[int(self.error_tree.item(sel[0])["values"][0]) - 1]
+            self.display_trace(f"Error '{err.lexeme}'", err.trace, True)
+
     def analyze_code(self):
         lexer = MiniLangLexer(self.code_editor.get("1.0", tk.END))
         self.current_tokens, self.current_errors = lexer.tokenize()
@@ -119,8 +135,12 @@ END"""
             self.token_tree.insert("", tk.END, values=(idx, tok.line, tok.column, tok.lexeme, tok.type))
         for idx, err in enumerate(self.current_errors, 1):
             self.error_tree.insert("", tk.END, values=(idx, err.line, err.column, err.lexeme, err.message))
-        self.token_header.config(text=f"Recognized Tokens ({len(self.current_tokens)})")
-        self.error_header.config(text=f"Lexical Errors ({len(self.current_errors)})")
+        self.token_header.config(text=f"Recognized Tokens ({len(self.current_tokens)}) — Click any row to inspect DFA trace")
+        self.error_header.config(text=f"Lexical Errors ({len(self.current_errors)}) — Click any row to inspect error path")
+        if self.current_tokens:
+            first_id = self.token_tree.get_children()[0]
+            self.token_tree.selection_set(first_id)
+            self.on_token_select(None)
         self.status_var.set(f"Analysis complete: {len(self.current_tokens)} tokens, {len(self.current_errors)} errors.")
 
     def export_results(self):
