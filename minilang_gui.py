@@ -174,10 +174,21 @@ END"""
         self.analyze_code()
 
     def open_file(self):
-        pass
+        path = filedialog.askopenfilename(filetypes=[("MiniLang", "*.minilang *.txt"), ("All", "*.*")])
+        if path:
+            with open(path, "r", encoding="utf-8") as f:
+                self.load_sample(f.read())
 
     def export_results(self):
-        pass
+        path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV", "*.csv"), ("Text", "*.txt")])
+        if path:
+            with open(path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(["Status", "Line", "Col", "Lexeme", "Type/Error", "Trace"])
+                for t in self.current_tokens:
+                    writer.writerow(["VALID", t.line, t.column, t.lexeme, t.type, " | ".join(t.trace)])
+                for e in self.current_errors:
+                    writer.writerow(["ERROR", e.line, e.column, e.lexeme, e.message, " | ".join(e.trace)])
 
 
 if __name__ == "__main__":
