@@ -73,6 +73,8 @@ END"""
         for col, title, w in [("idx", "#", 40), ("line", "Line", 50), ("col", "Col", 50), ("lexeme", "Lexeme", 180), ("type", "Token Category", 160)]:
             self.token_tree.heading(col, text=title)
             self.token_tree.column(col, width=w, anchor="center" if col in {"idx", "line", "col"} else "w")
+        for tag, color in [("KEYWORD", "#ff79c6"), ("IDENTIFIER", "#8be9fd"), ("STRING_LITERAL", "#f1fa8c"), ("INT_LITERAL", "#bd93f9"), ("ASSIGN_OP", "#ffb86c"), ("RETURN_ARROW", "#ffb86c"), ("DELIMITER", "#f8f8f2")]:
+            self.token_tree.tag_configure(tag, foreground=color)
         self.token_tree.bind("<<TreeviewSelect>>", self.on_token_select)
         self.token_tree.pack(fill=tk.BOTH, expand=True)
         right_pane.add(token_frame, height=270)
@@ -91,6 +93,7 @@ END"""
         for col, title, w in [("idx", "#", 40), ("line", "Line", 50), ("col", "Col", 50), ("lexeme", "Invalid Lexeme", 130), ("msg", "Error Description", 230)]:
             self.error_tree.heading(col, text=title)
             self.error_tree.column(col, width=w, anchor="center" if col in {"idx", "line", "col"} else "w")
+        self.error_tree.tag_configure("ERROR", foreground="#f38ba8")
         self.error_tree.bind("<<TreeviewSelect>>", self.on_error_select)
         self.error_tree.pack(fill=tk.BOTH, expand=True)
         right_pane.add(error_frame)
@@ -132,9 +135,9 @@ END"""
         for row in self.error_tree.get_children():
             self.error_tree.delete(row)
         for idx, tok in enumerate(self.current_tokens, 1):
-            self.token_tree.insert("", tk.END, values=(idx, tok.line, tok.column, tok.lexeme, tok.type))
+            self.token_tree.insert("", tk.END, values=(idx, tok.line, tok.column, tok.lexeme, tok.type), tags=(tok.type,))
         for idx, err in enumerate(self.current_errors, 1):
-            self.error_tree.insert("", tk.END, values=(idx, err.line, err.column, err.lexeme, err.message))
+            self.error_tree.insert("", tk.END, values=(idx, err.line, err.column, err.lexeme, err.message), tags=("ERROR",))
         self.token_header.config(text=f"Recognized Tokens ({len(self.current_tokens)}) — Click any row to inspect DFA trace")
         self.error_header.config(text=f"Lexical Errors ({len(self.current_errors)}) — Click any row to inspect error path")
         if self.current_tokens:
