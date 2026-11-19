@@ -30,6 +30,7 @@ END"""
         self.current_tokens = []
         self.current_errors = []
         self.build_header()
+        self.build_workspace()
         self.build_status_bar()
 
     def make_button(self, parent, text, cmd):
@@ -60,6 +61,80 @@ END"""
         self.make_button(btn_frame, "Open File", self.open_file).pack(side=tk.LEFT, padx=3)
         self.make_button(btn_frame, "Export Results", self.export_results).pack(side=tk.LEFT, padx=3)
         self.make_button(btn_frame, "Clear", self.clear_all).pack(side=tk.LEFT, padx=3)
+
+    def build_workspace(self):
+        main_pane = tk.PanedWindow(self.root, orient=tk.HORIZONTAL, sashwidth=5)
+        main_pane.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
+
+        left_frame = tk.Frame(main_pane)
+        tk.Label(
+            left_frame,
+            text="MiniLang Source Code Input",
+            font=("Segoe UI", 10, "bold"),
+        ).pack(anchor="w", pady=(0, 4))
+        self.code_editor = tk.Text(left_frame, font=("Consolas", 11), padx=8, pady=8)
+        self.code_editor.pack(fill=tk.BOTH, expand=True)
+        main_pane.add(left_frame, width=410)
+
+        right_pane = tk.PanedWindow(main_pane, orient=tk.VERTICAL, sashwidth=5)
+
+        token_frame = tk.Frame(right_pane)
+        self.token_header = tk.Label(
+            token_frame,
+            text="Recognized Tokens (0)",
+            font=("Segoe UI", 10, "bold"),
+        )
+        self.token_header.pack(anchor="w", pady=(0, 4))
+        self.token_tree = ttk.Treeview(
+            token_frame,
+            columns=("idx", "line", "col", "lexeme", "type"),
+            show="headings",
+        )
+        for col, title, w in [
+            ("idx", "#", 40),
+            ("line", "Line", 50),
+            ("col", "Col", 50),
+            ("lexeme", "Lexeme", 180),
+            ("type", "Token Category", 160),
+        ]:
+            self.token_tree.heading(col, text=title)
+            self.token_tree.column(
+                col,
+                width=w,
+                anchor="center" if col in {"idx", "line", "col"} else "w",
+            )
+        self.token_tree.pack(fill=tk.BOTH, expand=True)
+        right_pane.add(token_frame, height=270)
+
+        error_frame = tk.Frame(right_pane)
+        self.error_header = tk.Label(
+            error_frame,
+            text="Lexical Errors (0)",
+            font=("Segoe UI", 10, "bold"),
+        )
+        self.error_header.pack(anchor="w", pady=(0, 4))
+        self.error_tree = ttk.Treeview(
+            error_frame,
+            columns=("idx", "line", "col", "lexeme", "msg"),
+            show="headings",
+            height=4,
+        )
+        for col, title, w in [
+            ("idx", "#", 40),
+            ("line", "Line", 50),
+            ("col", "Col", 50),
+            ("lexeme", "Invalid Lexeme", 130),
+            ("msg", "Error Description", 230),
+        ]:
+            self.error_tree.heading(col, text=title)
+            self.error_tree.column(
+                col,
+                width=w,
+                anchor="center" if col in {"idx", "line", "col"} else "w",
+            )
+        self.error_tree.pack(fill=tk.BOTH, expand=True)
+        right_pane.add(error_frame)
+        main_pane.add(right_pane)
 
     def build_status_bar(self):
         self.status_var = tk.StringVar(value="Ready.")
