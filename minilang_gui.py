@@ -27,65 +27,116 @@ END"""
         self.root = root
         self.root.title("MiniLang Lexical Analyzer & DFA Tracer — CS302")
         self.root.geometry("1180x700")
+        self.root.configure(bg="#1e1e2e")
         self.current_tokens = []
         self.current_errors = []
+        self.setup_styles()
         self.build_header()
         self.build_workspace()
         self.build_status_bar()
         self.load_sample(self.VALID_SAMPLE)
 
-    def make_button(self, parent, text, cmd):
-        return tk.Button(parent, text=text, padx=8, pady=4, command=cmd)
+    def setup_styles(self):
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure(
+            "Treeview",
+            background="#282a36",
+            foreground="#f8f8f2",
+            fieldbackground="#282a36",
+            rowheight=26,
+            font=("Consolas", 10),
+        )
+        style.configure(
+            "Treeview.Heading",
+            background="#44475a",
+            foreground="#f8f8f2",
+            font=("Segoe UI", 10, "bold"),
+        )
+        style.map("Treeview", background=[("selected", "#6272a4")])
+
+    def make_button(self, parent, text, bg, fg, cmd):
+        return tk.Button(
+            parent,
+            text=text,
+            bg=bg,
+            fg=fg,
+            font=("Segoe UI", 9, "bold"),
+            relief=tk.FLAT,
+            padx=9,
+            pady=5,
+            cursor="hand2",
+            command=cmd,
+        )
 
     def build_header(self):
-        header = tk.Frame(self.root, padx=10, pady=8)
+        header = tk.Frame(self.root, bg="#181825", pady=10, padx=15)
         header.pack(fill=tk.X)
         tk.Label(
             header,
             text="MiniLang Function-Call Lexical Analyzer",
-            font=("Segoe UI", 13, "bold"),
+            font=("Segoe UI", 14, "bold"),
+            bg="#181825",
+            fg="#cba6f7",
         ).pack(side=tk.LEFT)
 
-        btn_frame = tk.Frame(header)
+        btn_frame = tk.Frame(header, bg="#181825")
         btn_frame.pack(side=tk.RIGHT)
-        self.make_button(btn_frame, "Analyze", self.analyze_code).pack(side=tk.LEFT, padx=3)
+        self.make_button(btn_frame, "▶ Analyze", "#a6e3a1", "#11111b", self.analyze_code).pack(side=tk.LEFT, padx=3)
         self.make_button(
             btn_frame,
             "Valid Sample",
+            "#89b4fa",
+            "#11111b",
             lambda: self.load_sample(self.VALID_SAMPLE),
         ).pack(side=tk.LEFT, padx=3)
         self.make_button(
             btn_frame,
             "Error Sample",
+            "#fab387",
+            "#11111b",
             lambda: self.load_sample(self.ERROR_SAMPLE),
         ).pack(side=tk.LEFT, padx=3)
-        self.make_button(btn_frame, "Open File", self.open_file).pack(side=tk.LEFT, padx=3)
-        self.make_button(btn_frame, "Export Results", self.export_results).pack(side=tk.LEFT, padx=3)
-        self.make_button(btn_frame, "Clear", self.clear_all).pack(side=tk.LEFT, padx=3)
+        self.make_button(btn_frame, "Open File", "#cdd6f4", "#11111b", self.open_file).pack(side=tk.LEFT, padx=3)
+        self.make_button(btn_frame, "Export Results", "#f9e2af", "#11111b", self.export_results).pack(side=tk.LEFT, padx=3)
+        self.make_button(btn_frame, "Clear", "#f38ba8", "#11111b", self.clear_all).pack(side=tk.LEFT, padx=3)
 
     def build_workspace(self):
-        main_pane = tk.PanedWindow(self.root, orient=tk.HORIZONTAL, sashwidth=5)
-        main_pane.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
+        main_pane = tk.PanedWindow(self.root, orient=tk.HORIZONTAL, bg="#1e1e2e", sashwidth=6)
+        main_pane.pack(fill=tk.BOTH, expand=True, padx=12, pady=10)
 
-        left_frame = tk.Frame(main_pane)
+        left_frame = tk.Frame(main_pane, bg="#1e1e2e")
         tk.Label(
             left_frame,
             text="MiniLang Source Code Input",
             font=("Segoe UI", 10, "bold"),
-        ).pack(anchor="w", pady=(0, 4))
-        self.code_editor = tk.Text(left_frame, font=("Consolas", 11), padx=8, pady=8)
+            bg="#1e1e2e",
+            fg="#cdd6f4",
+        ).pack(anchor="w", pady=(0, 5))
+        self.code_editor = tk.Text(
+            left_frame,
+            font=("Consolas", 11),
+            bg="#282a36",
+            fg="#f8f8f2",
+            insertbackground="#f8f8f2",
+            padx=10,
+            pady=10,
+            bd=0,
+        )
         self.code_editor.pack(fill=tk.BOTH, expand=True)
         main_pane.add(left_frame, width=410)
 
-        right_pane = tk.PanedWindow(main_pane, orient=tk.VERTICAL, sashwidth=5)
+        right_pane = tk.PanedWindow(main_pane, orient=tk.VERTICAL, bg="#1e1e2e", sashwidth=6)
 
-        token_frame = tk.Frame(right_pane)
+        token_frame = tk.Frame(right_pane, bg="#1e1e2e")
         self.token_header = tk.Label(
             token_frame,
             text="Recognized Tokens (0)",
             font=("Segoe UI", 10, "bold"),
+            bg="#1e1e2e",
+            fg="#a6e3a1",
         )
-        self.token_header.pack(anchor="w", pady=(0, 4))
+        self.token_header.pack(anchor="w", pady=(0, 5))
         self.token_tree = ttk.Treeview(
             token_frame,
             columns=("idx", "line", "col", "lexeme", "type"),
@@ -107,13 +158,15 @@ END"""
         self.token_tree.pack(fill=tk.BOTH, expand=True)
         right_pane.add(token_frame, height=270)
 
-        error_frame = tk.Frame(right_pane)
+        error_frame = tk.Frame(right_pane, bg="#1e1e2e")
         self.error_header = tk.Label(
             error_frame,
             text="Lexical Errors (0)",
             font=("Segoe UI", 10, "bold"),
+            bg="#1e1e2e",
+            fg="#f38ba8",
         )
-        self.error_header.pack(anchor="w", pady=(0, 4))
+        self.error_header.pack(anchor="w", pady=(0, 5))
         self.error_tree = ttk.Treeview(
             error_frame,
             columns=("idx", "line", "col", "lexeme", "msg"),
@@ -142,9 +195,11 @@ END"""
         tk.Label(
             self.root,
             textvariable=self.status_var,
+            bg="#181825",
+            fg="#a6adc8",
             anchor="w",
-            padx=10,
-            pady=4,
+            padx=12,
+            pady=5,
         ).pack(fill=tk.X, side=tk.BOTTOM)
 
     def analyze_code(self):
