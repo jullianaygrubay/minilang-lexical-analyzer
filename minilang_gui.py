@@ -32,6 +32,7 @@ END"""
         self.build_header()
         self.build_workspace()
         self.build_status_bar()
+        self.load_sample(self.VALID_SAMPLE)
 
     def make_button(self, parent, text, cmd):
         return tk.Button(parent, text=text, padx=8, pady=4, command=cmd)
@@ -147,18 +148,35 @@ END"""
         ).pack(fill=tk.X, side=tk.BOTTOM)
 
     def analyze_code(self):
-        pass
+        lexer = MiniLangLexer(self.code_editor.get("1.0", tk.END))
+        self.current_tokens, self.current_errors = lexer.tokenize()
+        for row in self.token_tree.get_children():
+            self.token_tree.delete(row)
+        for row in self.error_tree.get_children():
+            self.error_tree.delete(row)
+        for idx, tok in enumerate(self.current_tokens, 1):
+            self.token_tree.insert("", tk.END, values=(idx, tok.line, tok.column, tok.lexeme, tok.type))
+        for idx, err in enumerate(self.current_errors, 1):
+            self.error_tree.insert("", tk.END, values=(idx, err.line, err.column, err.lexeme, err.message))
+        self.token_header.config(text=f"Recognized Tokens ({len(self.current_tokens)})")
+        self.error_header.config(text=f"Lexical Errors ({len(self.current_errors)})")
+        self.status_var.set(
+            f"Analysis complete: {len(self.current_tokens)} tokens, {len(self.current_errors)} errors."
+        )
 
     def load_sample(self, text):
-        pass
+        self.code_editor.delete("1.0", tk.END)
+        self.code_editor.insert("1.0", text)
+        self.analyze_code()
+
+    def clear_all(self):
+        self.code_editor.delete("1.0", tk.END)
+        self.analyze_code()
 
     def open_file(self):
         pass
 
     def export_results(self):
-        pass
-
-    def clear_all(self):
         pass
 
 
