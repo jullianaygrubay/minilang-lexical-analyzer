@@ -9,3 +9,9 @@ An interactive **Deterministic Finite Automaton (DFA)** lexical analyzer and des
 ## Quick Start
 ```bash
 python minilang_gui.py
+
+## Sample Files
+
+- samples/valid_demo.minilang — Valid MiniLang functions, typed parameters, return arrows, and nested calls.
+
+- samples/error_demo.minilang — Intentional lexical edge cases for testing DFA error sink (qe) recovery.
