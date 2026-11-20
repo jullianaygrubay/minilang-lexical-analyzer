@@ -1,0 +1,17 @@
+START
+    FUNCTION calculate_bonus(base_score: INT, bonus: INT) -> INT {
+        LET total = add(base_score, bonus);
+        RETURN total;
+    }
+
+    FUNCTION print_report(student_name: STR, final_grade: INT) -> VOID {
+        display("Student Record:", student_name);
+        display("Final Grade:", final_grade);
+        RETURN;
+    }
+
+    LET exam_1 = 88;
+    LET bonus_pts = 7;
+    LET final_score = calculate_bonus(exam_1, bonus_pts);
+    print_report("Maria Clara", final_score);
+END
