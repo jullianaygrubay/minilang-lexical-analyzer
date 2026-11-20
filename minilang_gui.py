@@ -52,6 +52,7 @@ END"""
         self.root.configure(bg="#1e1e2e")
         self.current_tokens = []
         self.current_errors = []
+        self.analyze_after_id = None
         self.setup_styles()
         self.build_ui()
         self.load_sample(self.VALID_SAMPLE)
@@ -81,7 +82,7 @@ END"""
         main_pane.pack(fill=tk.BOTH, expand=True, padx=12, pady=10)
 
         left_frame = tk.Frame(main_pane, bg="#1e1e2e")
-        tk.Label(left_frame, text="MiniLang Source Code Input", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#cdd6f4").pack(anchor="w", pady=(0, 5))
+        tk.Label(left_frame, text="MiniLang Source Code Input (Live Auto-Analyze)", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#cdd6f4").pack(anchor="w", pady=(0, 5))
 
         editor_container = tk.Frame(left_frame, bg="#313244", bd=1)
         editor_container.pack(fill=tk.BOTH, expand=True)
@@ -163,6 +164,7 @@ END"""
     def on_editor_key_release(self, event):
         self.highlight_syntax()
         self.line_numbers.redraw()
+        self.schedule_auto_analyze(event)
 
     def highlight_syntax(self):
         content = self.code_editor.get("1.0", "end-1c")
@@ -175,6 +177,17 @@ END"""
         ]:
             for match in re.finditer(pattern, content):
                 self.code_editor.tag_add(tag, f"1.0 + {match.start()} chars", f"1.0 + {match.end()} chars")
+
+    def schedule_auto_analyze(self, event=None):
+        if event and event.keysym in {"Up", "Down", "Left", "Right", "Shift_L", "Shift_R", "Control_L", "Control_R", "Alt_L", "Alt_R", "Caps_Lock"}:
+            return
+        if self.analyze_after_id is not None:
+            self.root.after_cancel(self.analyze_after_id)
+        self.analyze_after_id = self.root.after(350, self._run_debounced_analysis)
+
+    def _run_debounced_analysis(self):
+        self.analyze_after_id = None
+        self.analyze_code()
 
     def display_trace(self, title, steps, is_error=False):
         self.trace_header.config(text=f"DFA State Transition Trace — {title}", fg="#f38ba8" if is_error else "#89dceb")
@@ -245,6 +258,9 @@ END"""
                     writer.writerow(["ERROR", e.line, e.column, e.lexeme, e.message, " | ".join(e.trace)])
 
     def load_sample(self, text):
+        if self.analyze_after_id is not None:
+            self.root.after_cancel(self.analyze_after_id)
+            self.analyze_after_id = None
         self.code_editor.delete("1.0", tk.END)
         self.code_editor.insert("1.0", text)
         self.highlight_syntax()
@@ -258,6 +274,9 @@ END"""
                 self.load_sample(f.read())
 
     def clear_all(self):
+        if self.analyze_after_id is not None:
+            self.root.after_cancel(self.analyze_after_id)
+            self.analyze_after_id = None
         self.code_editor.delete("1.0", tk.END)
         self.display_trace("None", [])
         self.analyze_code()
