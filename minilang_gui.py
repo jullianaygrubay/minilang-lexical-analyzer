@@ -55,6 +55,7 @@ END"""
         self.analyze_after_id = None
         self.setup_styles()
         self.build_ui()
+        self.bind_shortcuts()
         self.load_sample(self.VALID_SAMPLE)
 
     def setup_styles(self):
@@ -117,14 +118,20 @@ END"""
         token_frame = tk.Frame(right_pane, bg="#1e1e2e")
         self.token_header = tk.Label(token_frame, text="Recognized Tokens (0) — Click any row to inspect DFA trace", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#a6e3a1")
         self.token_header.pack(anchor="w", pady=(0, 5))
-        self.token_tree = ttk.Treeview(token_frame, columns=("idx", "line", "col", "lexeme", "type"), show="headings")
+        tree_container = tk.Frame(token_frame)
+        tree_container.pack(fill=tk.BOTH, expand=True)
+
+        self.token_tree = ttk.Treeview(tree_container, columns=("idx", "line", "col", "lexeme", "type"), show="headings")
         for col, title, w in [("idx", "#", 40), ("line", "Line", 50), ("col", "Col", 50), ("lexeme", "Lexeme", 180), ("type", "Token Category", 160)]:
             self.token_tree.heading(col, text=title)
             self.token_tree.column(col, width=w, anchor="center" if col in {"idx", "line", "col"} else "w")
         for tag, color in [("KEYWORD", "#ff79c6"), ("IDENTIFIER", "#8be9fd"), ("STRING_LITERAL", "#f1fa8c"), ("INT_LITERAL", "#bd93f9"), ("ASSIGN_OP", "#ffb86c"), ("RETURN_ARROW", "#ffb86c"), ("DELIMITER", "#f8f8f2")]:
             self.token_tree.tag_configure(tag, foreground=color)
         self.token_tree.bind("<<TreeviewSelect>>", self.on_token_select)
-        self.token_tree.pack(fill=tk.BOTH, expand=True)
+        tree_scroll = ttk.Scrollbar(tree_container, orient=tk.VERTICAL, command=self.token_tree.yview)
+        self.token_tree.configure(yscrollcommand=tree_scroll.set)
+        self.token_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
         right_pane.add(token_frame, height=275)
 
         trace_frame = tk.Frame(right_pane, bg="#1e1e2e")
@@ -137,21 +144,32 @@ END"""
         error_frame = tk.Frame(right_pane, bg="#1e1e2e")
         self.error_header = tk.Label(error_frame, text="Lexical Errors (0) — Click any row to inspect error path & jump to line", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#f38ba8")
         self.error_header.pack(anchor="w", pady=(0, 5))
-        self.error_tree = ttk.Treeview(error_frame, columns=("idx", "line", "col", "lexeme", "msg"), show="headings", height=4)
+        err_container = tk.Frame(error_frame)
+        err_container.pack(fill=tk.BOTH, expand=True)
+
+        self.error_tree = ttk.Treeview(err_container, columns=("idx", "line", "col", "lexeme", "msg"), show="headings", height=4)
         for col, title, w in [("idx", "#", 40), ("line", "Line", 50), ("col", "Col", 50), ("lexeme", "Invalid Lexeme", 130), ("msg", "Error Description", 230)]:
             self.error_tree.heading(col, text=title)
             self.error_tree.column(col, width=w, anchor="center" if col in {"idx", "line", "col"} else "w")
         self.error_tree.tag_configure("ERROR", foreground="#f38ba8")
         self.error_tree.bind("<<TreeviewSelect>>", self.on_error_select)
-        self.error_tree.pack(fill=tk.BOTH, expand=True)
+        err_scroll = ttk.Scrollbar(err_container, orient=tk.VERTICAL, command=self.error_tree.yview)
+        self.error_tree.configure(yscrollcommand=err_scroll.set)
+        self.error_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        err_scroll.pack(side=tk.RIGHT, fill=tk.Y)
         right_pane.add(error_frame)
         main_pane.add(right_pane)
 
         self.status_var = tk.StringVar(value="Ready.")
-        tk.Label(self.root, textvariable=self.status_var, bg="#181825", fg="#a6adc8", anchor="w", padx=12, pady=5).pack(fill=tk.X, side=tk.BOTTOM)
+        tk.Label(self.root, textvariable=self.status_var, bg="#181825", fg="#a6adc8", anchor="w", padx=12, pady=5, font=("Segoe UI", 9)).pack(fill=tk.X, side=tk.BOTTOM)
+
+    def bind_shortcuts(self):
+        self.root.bind("<Control-o>", lambda e: self.open_file())
+        self.root.bind("<Control-s>", lambda e: self.export_results())
+        self.root.bind("<Control-Return>", lambda e: self.analyze_code())
 
     def make_button(self, parent, text, bg, fg, cmd):
-        return tk.Button(parent, text=text, bg=bg, fg=fg, font=("Segoe UI", 9, "bold"), relief=tk.FLAT, padx=9, pady=5, cursor="hand2", command=cmd)
+        return tk.Button(parent, text=text, bg=bg, fg=fg, activebackground=bg, font=("Segoe UI", 9, "bold"), relief=tk.FLAT, padx=9, pady=5, cursor="hand2", command=cmd)
 
     def on_editor_scroll(self, *args):
         self.code_editor.yview(*args)
