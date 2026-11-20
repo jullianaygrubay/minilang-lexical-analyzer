@@ -1,4 +1,5 @@
 import csv
+import re
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from lexer import MiniLangLexer
@@ -151,6 +152,18 @@ END"""
         self.scrollbar.set(*args)
         self.line_numbers.redraw()
 
+    def highlight_syntax(self):
+        content = self.code_editor.get("1.0", "end-1c")
+        for tag in ("keyword", "string", "number", "operator", "comment"):
+            self.code_editor.tag_remove(tag, "1.0", tk.END)
+        for tag, pattern in [
+            ("keyword", r"\b(START|END|FUNCTION|RETURN|LET|INT|STR|VOID)\b"),
+            ("number", r"\b\d+\b"), ("operator", r"(->|=)"),
+            ("string", r'"[^"\n]*"'), ("comment", r"//[^\n]*"),
+        ]:
+            for match in re.finditer(pattern, content):
+                self.code_editor.tag_add(tag, f"1.0 + {match.start()} chars", f"1.0 + {match.end()} chars")
+
     def display_trace(self, title, steps, is_error=False):
         self.trace_header.config(text=f"DFA State Transition Trace — {title}", fg="#f38ba8" if is_error else "#89dceb")
         self.trace_box.config(state=tk.NORMAL, fg="#f38ba8" if is_error else "#89dceb")
@@ -206,6 +219,7 @@ END"""
     def load_sample(self, text):
         self.code_editor.delete("1.0", tk.END)
         self.code_editor.insert("1.0", text)
+        self.highlight_syntax()
         self.analyze_code()
         self.line_numbers.redraw()
 
