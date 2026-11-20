@@ -4,6 +4,22 @@ from tkinter import ttk, messagebox, filedialog
 from lexer import MiniLangLexer
 
 
+class LineNumberCanvas(tk.Canvas):
+    def __init__(self, master, text_widget, **kwargs):
+        super().__init__(master, **kwargs)
+        self.text_widget = text_widget
+
+    def redraw(self, *args):
+        self.delete("all")
+        i = self.text_widget.index("@0,0")
+        while True:
+            dline = self.text_widget.dlineinfo(i)
+            if dline is None:
+                break
+            self.create_text(36, dline[1], anchor="ne", text=i.split(".")[0], fill="#6272a4", font=("Consolas", 11))
+            i = self.text_widget.index(f"{i}+1line")
+
+
 class MiniLangGUI:
     VALID_SAMPLE = """START
     // Define a function
@@ -26,7 +42,7 @@ END"""
     def __init__(self, root):
         self.root = root
         self.root.title("MiniLang Lexical Analyzer & DFA Tracer — CS302")
-        self.root.geometry("1180x700")
+        self.root.geometry("1200x720")
         self.root.configure(bg="#1e1e2e")
         self.current_tokens = []
         self.current_errors = []
@@ -62,7 +78,7 @@ END"""
         tk.Label(left_frame, text="MiniLang Source Code Input", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#cdd6f4").pack(anchor="w", pady=(0, 5))
         self.code_editor = tk.Text(left_frame, font=("Consolas", 11), bg="#282a36", fg="#f8f8f2", insertbackground="#f8f8f2", padx=10, pady=10, bd=0)
         self.code_editor.pack(fill=tk.BOTH, expand=True)
-        main_pane.add(left_frame, width=410)
+        main_pane.add(left_frame, width=430)
 
         right_pane = tk.PanedWindow(main_pane, orient=tk.VERTICAL, bg="#1e1e2e", sashwidth=6)
 
@@ -77,7 +93,7 @@ END"""
             self.token_tree.tag_configure(tag, foreground=color)
         self.token_tree.bind("<<TreeviewSelect>>", self.on_token_select)
         self.token_tree.pack(fill=tk.BOTH, expand=True)
-        right_pane.add(token_frame, height=270)
+        right_pane.add(token_frame, height=275)
 
         trace_frame = tk.Frame(right_pane, bg="#1e1e2e")
         self.trace_header = tk.Label(trace_frame, text="DFA State Transition Trace", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#89dceb")
