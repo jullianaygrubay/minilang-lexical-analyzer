@@ -265,15 +265,33 @@ END"""
         self.status_var.set(f"Analysis complete: {len(self.current_tokens)} valid tokens, {len(self.current_errors)} lexical errors.")
 
     def export_results(self):
-        path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV", "*.csv"), ("Text", "*.txt")])
-        if path:
-            with open(path, "w", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f)
-                writer.writerow(["Status", "Line", "Col", "Lexeme", "Type/Error", "Trace"])
-                for t in self.current_tokens:
-                    writer.writerow(["VALID", t.line, t.column, t.lexeme, t.type, " | ".join(t.trace)])
-                for e in self.current_errors:
-                    writer.writerow(["ERROR", e.line, e.column, e.lexeme, e.message, " | ".join(e.trace)])
+        if not self.current_tokens and not self.current_errors:
+            messagebox.showwarning("Nothing to Export", "Please analyze some MiniLang code first.")
+            return
+        file_path = filedialog.asksaveasfilename(title="Export Lexical Analysis Results", defaultextension=".csv", filetypes=[("CSV Spreadsheet", "*.csv"), ("Formatted Text Report", "*.txt")])
+        if not file_path:
+            return
+        try:
+            if file_path.endswith(".csv"):
+                with open(file_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["Status", "Line", "Column", "Lexeme", "Token Category / Error Message", "DFA State Trace"])
+                    for tok in self.current_tokens:
+                        writer.writerow(["VALID", tok.line, tok.column, tok.lexeme, tok.type, " | ".join(tok.trace)])
+                    for err in self.current_errors:
+                        writer.writerow(["ERROR", err.line, err.column, err.lexeme, err.message, " | ".join(err.trace)])
+            else:
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write("MINILANG LEXICAL ANALYZER REPORT (CS302)\n" + "=" * 55 + "\n\n")
+                    for tok in self.current_tokens:
+                        f.write(f"[Line {tok.line}, Col {tok.column}] {tok.type:<15} : {tok.lexeme}\n")
+                    f.write("\nLEXICAL ERRORS:\n" + "-" * 55 + "\n")
+                    for err in self.current_errors:
+                        f.write(f"[Line {err.line}, Col {err.column}] {err.message}: '{err.lexeme}'\n")
+            self.status_var.set(f"Exported results to {file_path}")
+            messagebox.showinfo("Export Successful", f"Results saved successfully to:\n{file_path}")
+        except Exception as e:
+            messagebox.showerror("Export Error", f"Failed to export file:\n{e}")
 
     def load_sample(self, text):
         if self.analyze_after_id is not None:
@@ -286,19 +304,32 @@ END"""
         self.line_numbers.redraw()
 
     def open_file(self):
-        path = filedialog.askopenfilename(filetypes=[("MiniLang", "*.minilang *.txt"), ("All", "*.*")])
+        path = filedialog.askopenfilename(title="Open MiniLang Source File", filetypes=[("MiniLang Files", "*.minilang *.txt"), ("All Files", "*.*")])
         if path:
-            with open(path, "r", encoding="utf-8") as f:
-                self.load_sample(f.read())
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    self.load_sample(f.read())
+                self.status_var.set(f"Loaded file: {path}")
+            except Exception as e:
+                messagebox.showerror("File Error", f"Could not read file:\n{e}")
 
     def clear_all(self):
         if self.analyze_after_id is not None:
             self.root.after_cancel(self.analyze_after_id)
             self.analyze_after_id = None
         self.code_editor.delete("1.0", tk.END)
+        self.code_editor.tag_remove("lexical_error", "1.0", tk.END)
+        self.current_tokens = []
+        self.current_errors = []
+        for row in self.token_tree.get_children():
+            self.token_tree.delete(row)
+        for row in self.error_tree.get_children():
+            self.error_tree.delete(row)
         self.display_trace("None", [])
-        self.analyze_code()
+        self.token_header.config(text="Recognized Tokens (0)")
+        self.error_header.config(text="Lexical Errors (0)")
         self.line_numbers.redraw()
+        self.status_var.set("Cleared.")
 
 
 if __name__ == "__main__":
