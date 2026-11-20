@@ -1,0 +1,12 @@
+START
+    LET course = "CS302";
+    display(course, 100);
+    123invalid_func("Test");
+    LET gpa = 98.75;
+    FUNCTION broken_arrow(x: INT) - VOID {
+        RETURN;
+    }
+    / Single slash invalid comment
+    LET result = 10 + 20 @ 5;
+    display("This string never closes);
+END
