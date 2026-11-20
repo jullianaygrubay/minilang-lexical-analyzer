@@ -98,7 +98,8 @@ END"""
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.code_editor.config(yscrollcommand=self.on_text_yscroll)
 
-        for event in ("<KeyRelease>", "<MouseWheel>", "<ButtonRelease-1>", "<Configure>"):
+        self.code_editor.bind("<KeyRelease>", self.on_editor_key_release)
+        for event in ("<MouseWheel>", "<ButtonRelease-1>", "<Configure>"):
             self.code_editor.bind(event, self.line_numbers.redraw)
 
         main_pane.add(left_frame, width=430)
@@ -150,6 +151,10 @@ END"""
 
     def on_text_yscroll(self, *args):
         self.scrollbar.set(*args)
+        self.line_numbers.redraw()
+
+    def on_editor_key_release(self, event):
+        self.highlight_syntax()
         self.line_numbers.redraw()
 
     def highlight_syntax(self):
