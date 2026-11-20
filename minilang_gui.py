@@ -81,6 +81,14 @@ END"""
         editor_container.pack(fill=tk.BOTH, expand=True)
 
         self.code_editor = tk.Text(editor_container, font=("Consolas", 11), bg="#282a36", fg="#f8f8f2", insertbackground="#f8f8f2", selectbackground="#44475a", undo=True, padx=10, pady=10, bd=0)
+        self.code_editor.tag_configure("keyword", foreground="#ff79c6", font=("Consolas", 11, "bold"))
+        self.code_editor.tag_configure("string", foreground="#f1fa8c")
+        self.code_editor.tag_configure("number", foreground="#bd93f9")
+        self.code_editor.tag_configure("operator", foreground="#ffb86c")
+        self.code_editor.tag_configure("comment", foreground="#6272a4", font=("Consolas", 11, "italic"))
+        self.code_editor.tag_raise("string")
+        self.code_editor.tag_raise("comment")
+
         self.line_numbers = LineNumberCanvas(editor_container, self.code_editor, width=44, bg="#21222c", highlightthickness=0, bd=0)
         self.line_numbers.pack(side=tk.LEFT, fill=tk.Y)
         self.code_editor.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
