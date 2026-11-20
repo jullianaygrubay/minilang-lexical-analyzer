@@ -28,12 +28,17 @@ class MiniLangGUI:
         display(student, score);
         RETURN;
     }
+
+    // Call functions inside main block
     LET status = check_grade(95);
     greet("Alex", 95);
 END"""
 
     ERROR_SAMPLE = """START
+    // Valid function call
     display("CS302", 100);
+
+    // Intentional lexical errors for testing
     123func("Ana");
     display("Unclosed string);
     add(5 + 3);
@@ -87,8 +92,10 @@ END"""
         self.code_editor.tag_configure("number", foreground="#bd93f9")
         self.code_editor.tag_configure("operator", foreground="#ffb86c")
         self.code_editor.tag_configure("comment", foreground="#6272a4", font=("Consolas", 11, "italic"))
+        self.code_editor.tag_configure("lexical_error", underline=True, foreground="#f38ba8", background="#3b232c")
         self.code_editor.tag_raise("string")
         self.code_editor.tag_raise("comment")
+        self.code_editor.tag_raise("lexical_error")
 
         self.line_numbers = LineNumberCanvas(editor_container, self.code_editor, width=44, bg="#21222c", highlightthickness=0, bd=0)
         self.line_numbers.pack(side=tk.LEFT, fill=tk.Y)
@@ -127,7 +134,7 @@ END"""
         right_pane.add(trace_frame, height=150)
 
         error_frame = tk.Frame(right_pane, bg="#1e1e2e")
-        self.error_header = tk.Label(error_frame, text="Lexical Errors (0) — Click any row to inspect error path", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#f38ba8")
+        self.error_header = tk.Label(error_frame, text="Lexical Errors (0) — Click any row to inspect error path & jump to line", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#f38ba8")
         self.error_header.pack(anchor="w", pady=(0, 5))
         self.error_tree = ttk.Treeview(error_frame, columns=("idx", "line", "col", "lexeme", "msg"), show="headings", height=4)
         for col, title, w in [("idx", "#", 40), ("line", "Line", 50), ("col", "Col", 50), ("lexeme", "Invalid Lexeme", 130), ("msg", "Error Description", 230)]:
@@ -190,6 +197,10 @@ END"""
             self.token_tree.selection_remove(self.token_tree.selection())
             err = self.current_errors[int(self.error_tree.item(sel[0])["values"][0]) - 1]
             self.display_trace(f"Error '{err.lexeme}'", err.trace, True)
+            err_pos = f"{err.line}.{err.column - 1}"
+            self.code_editor.mark_set(tk.INSERT, err_pos)
+            self.code_editor.see(err_pos)
+            self.line_numbers.redraw()
 
     def analyze_code(self):
         lexer = MiniLangLexer(self.code_editor.get("1.0", tk.END))
@@ -198,17 +209,29 @@ END"""
             self.token_tree.delete(row)
         for row in self.error_tree.get_children():
             self.error_tree.delete(row)
+        self.code_editor.tag_remove("lexical_error", "1.0", tk.END)
+
         for idx, tok in enumerate(self.current_tokens, 1):
             self.token_tree.insert("", tk.END, values=(idx, tok.line, tok.column, tok.lexeme, tok.type), tags=(tok.type,))
         for idx, err in enumerate(self.current_errors, 1):
             self.error_tree.insert("", tk.END, values=(idx, err.line, err.column, err.lexeme, err.message), tags=("ERROR",))
+            start_col = err.column - 1
+            self.code_editor.tag_add("lexical_error", f"{err.line}.{start_col}", f"{err.line}.{start_col + len(err.lexeme)}")
+
         self.token_header.config(text=f"Recognized Tokens ({len(self.current_tokens)}) — Click any row to inspect DFA trace")
-        self.error_header.config(text=f"Lexical Errors ({len(self.current_errors)}) — Click any row to inspect error path")
+        self.error_header.config(text=f"Lexical Errors ({len(self.current_errors)}) — Click any row to inspect error path & jump to line")
+
         if self.current_tokens:
             first_id = self.token_tree.get_children()[0]
             self.token_tree.selection_set(first_id)
             self.on_token_select(None)
-        self.status_var.set(f"Analysis complete: {len(self.current_tokens)} tokens, {len(self.current_errors)} errors.")
+        elif self.current_errors:
+            first_err = self.error_tree.get_children()[0]
+            self.error_tree.selection_set(first_err)
+            self.on_error_select(None)
+        else:
+            self.display_trace("None", ["No tokens or errors to trace."])
+        self.status_var.set(f"Analysis complete: {len(self.current_tokens)} valid tokens, {len(self.current_errors)} lexical errors.")
 
     def export_results(self):
         path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV", "*.csv"), ("Text", "*.txt")])
