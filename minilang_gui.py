@@ -85,8 +85,12 @@ END"""
         self.line_numbers.pack(side=tk.LEFT, fill=tk.Y)
         self.code_editor.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        self.scrollbar = ttk.Scrollbar(editor_container)
+        self.scrollbar = ttk.Scrollbar(editor_container, command=self.on_editor_scroll)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.code_editor.config(yscrollcommand=self.on_text_yscroll)
+
+        for event in ("<KeyRelease>", "<MouseWheel>", "<ButtonRelease-1>", "<Configure>"):
+            self.code_editor.bind(event, self.line_numbers.redraw)
 
         main_pane.add(left_frame, width=430)
 
@@ -130,6 +134,14 @@ END"""
 
     def make_button(self, parent, text, bg, fg, cmd):
         return tk.Button(parent, text=text, bg=bg, fg=fg, font=("Segoe UI", 9, "bold"), relief=tk.FLAT, padx=9, pady=5, cursor="hand2", command=cmd)
+
+    def on_editor_scroll(self, *args):
+        self.code_editor.yview(*args)
+        self.line_numbers.redraw()
+
+    def on_text_yscroll(self, *args):
+        self.scrollbar.set(*args)
+        self.line_numbers.redraw()
 
     def display_trace(self, title, steps, is_error=False):
         self.trace_header.config(text=f"DFA State Transition Trace — {title}", fg="#f38ba8" if is_error else "#89dceb")
@@ -187,6 +199,7 @@ END"""
         self.code_editor.delete("1.0", tk.END)
         self.code_editor.insert("1.0", text)
         self.analyze_code()
+        self.line_numbers.redraw()
 
     def open_file(self):
         path = filedialog.askopenfilename(filetypes=[("MiniLang", "*.minilang *.txt"), ("All", "*.*")])
@@ -198,6 +211,7 @@ END"""
         self.code_editor.delete("1.0", tk.END)
         self.display_trace("None", [])
         self.analyze_code()
+        self.line_numbers.redraw()
 
 
 if __name__ == "__main__":
