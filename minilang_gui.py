@@ -76,8 +76,18 @@ END"""
 
         left_frame = tk.Frame(main_pane, bg="#1e1e2e")
         tk.Label(left_frame, text="MiniLang Source Code Input", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#cdd6f4").pack(anchor="w", pady=(0, 5))
-        self.code_editor = tk.Text(left_frame, font=("Consolas", 11), bg="#282a36", fg="#f8f8f2", insertbackground="#f8f8f2", padx=10, pady=10, bd=0)
-        self.code_editor.pack(fill=tk.BOTH, expand=True)
+
+        editor_container = tk.Frame(left_frame, bg="#313244", bd=1)
+        editor_container.pack(fill=tk.BOTH, expand=True)
+
+        self.code_editor = tk.Text(editor_container, font=("Consolas", 11), bg="#282a36", fg="#f8f8f2", insertbackground="#f8f8f2", selectbackground="#44475a", undo=True, padx=10, pady=10, bd=0)
+        self.line_numbers = LineNumberCanvas(editor_container, self.code_editor, width=44, bg="#21222c", highlightthickness=0, bd=0)
+        self.line_numbers.pack(side=tk.LEFT, fill=tk.Y)
+        self.code_editor.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        self.scrollbar = ttk.Scrollbar(editor_container)
+        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
         main_pane.add(left_frame, width=430)
 
         right_pane = tk.PanedWindow(main_pane, orient=tk.VERTICAL, bg="#1e1e2e", sashwidth=6)
