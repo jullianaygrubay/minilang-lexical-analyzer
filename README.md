@@ -11,38 +11,49 @@ An interactive **Deterministic Finite Automaton (DFA)** lexical analyzer and des
 ## DFA State Transition Diagram
 
 ```mermaid
-stateDiagram-v2
-    direction LR
-    [*] --> q0
+flowchart LR
+    start((▶ Start)) --> q0((q0))
 
-    q0 --> q1 : letter / _
-    q1 --> q1 : letter / digit / _
-    q1 --> [*] : Keyword or Identifier
+    %% Identifiers & Keywords
+    q0 -- "🔤 letter / _" --> q1(((q1<br/>🏷️ ID / KW)))
+    q1 -- "🔤 letter / digit / _" --> q1
 
-    q0 --> q2 : digit
-    q2 --> q2 : digit
-    q2 --> [*] : INT_LITERAL
-    q2 --> qe : . or letter (malformed number)
+    %% Integer Literals
+    q0 -- "🔢 digit" --> q2(((q2<br/>#️⃣ INT)))
+    q2 -- "🔢 digit" --> q2
+    q2 -- "❌ . or letter" --> qe(((qe<br/>⚠️ ERROR)))
 
-    q0 --> q3 : '"'
-    q3 --> q3 : any char except '"' or newline
-    q3 --> q4 : '"'
-    q4 --> [*] : STRING_LITERAL
-    q3 --> qe : newline or EOF (unclosed string)
+    %% String Literals
+    q0 -- "💬 &quot;" --> q3((q3))
+    q3 -- "📝 any char ≠ &quot;, \n" --> q3
+    q3 -- "💬 &quot;" --> q4(((q4<br/>📜 STR)))
+    q3 -- "❌ \n or EOF" --> qe
 
-    q0 --> q5 : '='
-    q5 --> [*] : ASSIGN_OP
+    %% Assignment Operator
+    q0 -- "🟰 =" --> q5(((q5<br/>⚙️ ASSIGN)))
 
-    q0 --> q6 : '-'
-    q6 --> q7 : '>'
-    q7 --> [*] : RETURN_ARROW
-    q6 --> qe : other (expected '->')
+    %% Return Arrow
+    q0 -- "➖ -" --> q6((q6))
+    q6 -- "➡️ >" --> q7(((q7<br/>↪️ ARROW)))
+    q6 -- "❌ other" --> qe
 
-    q0 --> q8 : delimiter ( ) { } : ; ,
-    q8 --> [*] : DELIMITER
+    %% Delimiters
+    q0 -- "🔣 ( ) { } : ; ," --> q8(((q8<br/>🧩 DELIM)))
 
-    q0 --> qe : unrecognized symbol
-    qe --> [*] : LexicalError (panic-mode recovery)
+    %% Unrecognized Symbol
+    q0 -- "❌ other symbol" --> qe
+
+    %% Styling
+    style q0 fill:#282a36,stroke:#bd93f9,stroke-width:3px,color:#f8f8f2
+    style q3 fill:#282a36,stroke:#8be9fd,stroke-width:2px,color:#f8f8f2
+    style q6 fill:#282a36,stroke:#8be9fd,stroke-width:2px,color:#f8f8f2
+    style q1 fill:#1e3a2f,stroke:#50fa7b,stroke-width:3px,color:#f8f8f2
+    style q2 fill:#1e3a2f,stroke:#50fa7b,stroke-width:3px,color:#f8f8f2
+    style q4 fill:#1e3a2f,stroke:#50fa7b,stroke-width:3px,color:#f8f8f2
+    style q5 fill:#1e3a2f,stroke:#50fa7b,stroke-width:3px,color:#f8f8f2
+    style q7 fill:#1e3a2f,stroke:#50fa7b,stroke-width:3px,color:#f8f8f2
+    style q8 fill:#1e3a2f,stroke:#50fa7b,stroke-width:3px,color:#f8f8f2
+    style qe fill:#441c24,stroke:#ff5555,stroke-width:3px,color:#f8f8f2
 ```
 
 ## Lexical Token Specification
