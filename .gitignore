@@ -5,3 +5,8 @@ venv/
 .vscode/
 .DS_Store
 *.csv
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec
