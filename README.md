@@ -24,9 +24,9 @@ flowchart LR
     q2 -- "❌ . or letter" --> qe(((qe<br/>⚠️ ERROR)))
 
     %% String Literals
-    q0 -- "💬 &quot;" --> q3((q3))
-    q3 -- "📝 any char ≠ &quot;, \n" --> q3
-    q3 -- "💬 &quot;" --> q4(((q4<br/>📜 STR)))
+    q0 -- "💬 #quot;" --> q3((q3))
+    q3 -- "📝 any char ≠ #quot;, \n" --> q3
+    q3 -- "💬 #quot;" --> q4(((q4<br/>📜 STR)))
     q3 -- "❌ \n or EOF" --> qe
 
     %% Assignment Operator
