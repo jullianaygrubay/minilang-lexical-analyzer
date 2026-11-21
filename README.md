@@ -11,6 +11,7 @@ An interactive **Deterministic Finite Automaton (DFA)** lexical analyzer and des
 ## Quick Start
 ```bash
 python minilang_gui.py
+```
 
 ## Sample Files
 
