@@ -1,3 +1,4 @@
+from pathlib import Path
 from lexer import MiniLangLexer
 
 
@@ -78,3 +79,21 @@ END"""
     assert "START" in valid_lexemes
     assert "FUNCTION" in valid_lexemes
     assert "END" in valid_lexemes
+
+
+def test_valid_demo_sample_file():
+    sample_path = Path(__file__).resolve().parent.parent / "samples" / "valid_demo.minilang"
+    source = sample_path.read_text(encoding="utf-8")
+    tokens, errors = MiniLangLexer(source).tokenize()
+
+    assert errors == []
+    assert len(tokens) > 20
+
+
+def test_error_demo_sample_file():
+    sample_path = Path(__file__).resolve().parent.parent / "samples" / "error_demo.minilang"
+    source = sample_path.read_text(encoding="utf-8")
+    tokens, errors = MiniLangLexer(source).tokenize()
+
+    assert len(errors) == 7
+    assert any(t.lexeme == "END" for t in tokens)
