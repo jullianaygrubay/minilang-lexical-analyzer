@@ -45,6 +45,21 @@ stateDiagram-v2
     qe --> [*] : LexicalError (panic-mode recovery)
 ```
 
+## Lexical Token Specification
+
+| Token Category | Accepting State | Pattern / Lexemes | Examples |
+| :--- | :---: | :--- | :--- |
+| **KEYWORD** | `q1` | `START`, `END`, `FUNCTION`, `LET`, `RETURN`, `IF`, `ELSE`, `WHILE`, `PRINT`, `display` | `START`, `FUNCTION`, `LET` |
+| **DATA_TYPE** | `q1` | `INT`, `STR`, `FLOAT`, `BOOL`, `VOID` | `INT`, `STR`, `VOID` |
+| **IDENTIFIER** | `q1` | `[a-zA-Z_][a-zA-Z0-9_]*` (excluding keywords & types) | `greet`, `score`, `check_grade` |
+| **INT_LITERAL** | `q2` | `[0-9]+` | `0`, `95`, `100` |
+| **STRING_LITERAL** | `q4` | `"[^"\n]*"` | `"Alex"`, `"CS302"` |
+| **ASSIGN_OP** | `q5` | `=` | `=` |
+| **RETURN_ARROW** | `q7` | `->` | `->` |
+| **DELIMITER** | `q8` | `(`, `)`, `{`, `}`, `;`, `,`, `:` | `(`, `)`, `{`, `;`, `:` |
+| **COMMENT** *(Ignored)* | `q6` | `//[^\n]*` | `// Define a function` |
+| **LEXICAL_ERROR** | `qe` | Unclosed strings, invalid symbols, or malformed identifiers (e.g. `123func`, `95.50`, `+`) | `123func`, `"Unclosed string` |
+
 ## Quick Start
 ```bash
 python minilang_gui.py
