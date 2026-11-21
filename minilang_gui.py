@@ -4,11 +4,18 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from lexer import MiniLangLexer
 
+import sys
+from pathlib import Path
+
+def resource_path(relative_path: str) -> Path:
+    base_path = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+    return base_path / relative_path
 
 class LineNumberCanvas(tk.Canvas):
     def __init__(self, master, text_widget, **kwargs):
         super().__init__(master, **kwargs)
         self.text_widget = text_widget
+        self.fg_color = "#6272a4"
 
     def redraw(self, *args):
         self.delete("all")
@@ -17,11 +24,83 @@ class LineNumberCanvas(tk.Canvas):
             dline = self.text_widget.dlineinfo(i)
             if dline is None:
                 break
-            self.create_text(36, dline[1], anchor="ne", text=i.split(".")[0], fill="#6272a4", font=("Consolas", 11))
+            self.create_text(
+                36,
+                dline[1],
+                anchor="ne",
+                text=i.split(".")[0],
+                fill=self.fg_color,
+                font=("Consolas", 11),
+            )
             i = self.text_widget.index(f"{i}+1line")
 
 
 class MiniLangGUI:
+    THEMES = {
+        "dark": {
+            "bg": "#1e1e2e",
+            "header_bg": "#181825",
+            "title_fg": "#cba6f7",
+            "label_fg": "#cdd6f4",
+            "status_fg": "#a6adc8",
+            "editor_bg": "#282a36",
+            "editor_fg": "#f8f8f2",
+            "editor_select": "#44475a",
+            "gutter_bg": "#21222c",
+            "gutter_fg": "#6272a4",
+            "tree_bg": "#282a36",
+            "tree_fg": "#f8f8f2",
+            "tree_head_bg": "#44475a",
+            "tree_head_fg": "#f8f8f2",
+            "tree_select": "#6272a4",
+            "trace_bg": "#181825",
+            "trace_fg": "#89dceb",
+            "token_header": "#a6e3a1",
+            "error_header": "#f38ba8",
+            "error_bg": "#3b232c",
+            "kw": "#ff79c6",
+            "id": "#8be9fd",
+            "str": "#f1fa8c",
+            "num": "#bd93f9",
+            "op": "#ffb86c",
+            "delim": "#f8f8f2",
+            "comment": "#6272a4",
+            "toggle_text": "☀ Light Mode",
+            "toggle_bg": "#f9e2af",
+        },
+        "light": {
+            "bg": "#eff1f5",
+            "header_bg": "#dce0e8",
+            "title_fg": "#8839ef",
+            "label_fg": "#4c4f69",
+            "status_fg": "#5c5f77",
+            "editor_bg": "#ffffff",
+            "editor_fg": "#4c4f69",
+            "editor_select": "#ccd0da",
+            "gutter_bg": "#e6e9ef",
+            "gutter_fg": "#8c8fa1",
+            "tree_bg": "#ffffff",
+            "tree_fg": "#4c4f69",
+            "tree_head_bg": "#ccd0da",
+            "tree_head_fg": "#4c4f69",
+            "tree_select": "#bcc0cc",
+            "trace_bg": "#e6e9ef",
+            "trace_fg": "#04a5e5",
+            "token_header": "#40a02b",
+            "error_header": "#d20f39",
+            "error_bg": "#f5d0d6",
+            "kw": "#d20f39",
+            "id": "#1e66f5",
+            "str": "#df8e1d",
+            "num": "#8839ef",
+            "op": "#fe640b",
+            "delim": "#4c4f69",
+            "comment": "#9ca0b0",
+            "toggle_text": "🌙 Dark Mode",
+            "toggle_bg": "#cba6f7",
+        },
+    }
+
     VALID_SAMPLE = """START
     // Define a function
     FUNCTION greet(student: STR, score: INT) -> VOID {
@@ -48,62 +127,85 @@ END"""
     def __init__(self, root):
         self.root = root
         self.root.title("MiniLang Lexical Analyzer & DFA Tracer — CS302")
-        self.root.geometry("1200x720")
-        self.root.configure(bg="#1e1e2e")
+        self.root.geometry("1220x720")
+
+        self.current_theme = "dark"
         self.current_tokens = []
         self.current_errors = []
         self.analyze_after_id = None
-        self.setup_styles()
+        self.last_trace_is_error = False
+
+        self.style = ttk.Style()
+        self.style.theme_use("clam")
+
         self.build_ui()
+        self.apply_theme()
         self.bind_shortcuts()
         self.load_sample(self.VALID_SAMPLE)
 
-    def setup_styles(self):
-        style = ttk.Style()
-        style.theme_use("clam")
-        style.configure("Treeview", background="#282a36", foreground="#f8f8f2", fieldbackground="#282a36", rowheight=26, font=("Consolas", 10))
-        style.configure("Treeview.Heading", background="#44475a", foreground="#f8f8f2", font=("Segoe UI", 10, "bold"))
-        style.map("Treeview", background=[("selected", "#6272a4")])
-
     def build_ui(self):
-        header = tk.Frame(self.root, bg="#181825", pady=10, padx=15)
-        header.pack(fill=tk.X)
-        tk.Label(header, text="MiniLang Function-Call Lexical Analyzer", font=("Segoe UI", 14, "bold"), bg="#181825", fg="#cba6f7").pack(side=tk.LEFT)
+        # Top Header Bar
+        self.header = tk.Frame(self.root, pady=10, padx=15)
+        self.header.pack(fill=tk.X)
 
-        btn_frame = tk.Frame(header, bg="#181825")
-        btn_frame.pack(side=tk.RIGHT)
-        self.make_button(btn_frame, "▶ Analyze", "#a6e3a1", "#11111b", self.analyze_code).pack(side=tk.LEFT, padx=3)
-        self.make_button(btn_frame, "Valid Sample", "#89b4fa", "#11111b", lambda: self.load_sample(self.VALID_SAMPLE)).pack(side=tk.LEFT, padx=3)
-        self.make_button(btn_frame, "Error Sample", "#fab387", "#11111b", lambda: self.load_sample(self.ERROR_SAMPLE)).pack(side=tk.LEFT, padx=3)
-        self.make_button(btn_frame, "Open File", "#cdd6f4", "#11111b", self.open_file).pack(side=tk.LEFT, padx=3)
-        self.make_button(btn_frame, "Export Results", "#f9e2af", "#11111b", self.export_results).pack(side=tk.LEFT, padx=3)
-        self.make_button(btn_frame, "Clear", "#f38ba8", "#11111b", self.clear_all).pack(side=tk.LEFT, padx=3)
+        self.title_label = tk.Label(
+            self.header,
+            text="MiniLang Function-Call Lexical Analyzer",
+            font=("Segoe UI", 14, "bold"),
+        )
+        self.title_label.pack(side=tk.LEFT)
 
-        main_pane = tk.PanedWindow(self.root, orient=tk.HORIZONTAL, bg="#1e1e2e", sashwidth=6)
-        main_pane.pack(fill=tk.BOTH, expand=True, padx=12, pady=10)
+        self.btn_frame = tk.Frame(self.header)
+        self.btn_frame.pack(side=tk.RIGHT)
 
-        left_frame = tk.Frame(main_pane, bg="#1e1e2e")
-        tk.Label(left_frame, text="MiniLang Source Code Input (Live Auto-Analyze)", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#cdd6f4").pack(anchor="w", pady=(0, 5))
+        self.make_button(self.btn_frame, "▶ Analyze", "#a6e3a1", "#11111b", self.analyze_code).pack(side=tk.LEFT, padx=3)
+        self.make_button(self.btn_frame, "Valid Sample", "#89b4fa", "#11111b", lambda: self.load_sample(self.VALID_SAMPLE)).pack(side=tk.LEFT, padx=3)
+        self.make_button(self.btn_frame, "Error Sample", "#fab387", "#11111b", lambda: self.load_sample(self.ERROR_SAMPLE)).pack(side=tk.LEFT, padx=3)
+        self.make_button(self.btn_frame, "Open File", "#cdd6f4", "#11111b", self.open_file).pack(side=tk.LEFT, padx=3)
+        self.make_button(self.btn_frame, "Export Results", "#94e2d5", "#11111b", self.export_results).pack(side=tk.LEFT, padx=3)
+        self.make_button(self.btn_frame, "Clear", "#f38ba8", "#11111b", self.clear_all).pack(side=tk.LEFT, padx=3)
 
-        editor_container = tk.Frame(left_frame, bg="#313244", bd=1)
-        editor_container.pack(fill=tk.BOTH, expand=True)
+        # Theme Toggle Button
+        self.theme_btn = self.make_button(
+            self.btn_frame, "☀ Light Mode", "#f9e2af", "#11111b", self.toggle_theme
+        )
+        self.theme_btn.pack(side=tk.LEFT, padx=(8, 0))
 
-        self.code_editor = tk.Text(editor_container, font=("Consolas", 11), bg="#282a36", fg="#f8f8f2", insertbackground="#f8f8f2", selectbackground="#44475a", undo=True, padx=10, pady=10, bd=0)
-        self.code_editor.tag_configure("keyword", foreground="#ff79c6", font=("Consolas", 11, "bold"))
-        self.code_editor.tag_configure("string", foreground="#f1fa8c")
-        self.code_editor.tag_configure("number", foreground="#bd93f9")
-        self.code_editor.tag_configure("operator", foreground="#ffb86c")
-        self.code_editor.tag_configure("comment", foreground="#6272a4", font=("Consolas", 11, "italic"))
-        self.code_editor.tag_configure("lexical_error", underline=True, foreground="#f38ba8", background="#3b232c")
-        self.code_editor.tag_raise("string")
-        self.code_editor.tag_raise("comment")
-        self.code_editor.tag_raise("lexical_error")
+        # Main Split Container
+        self.main_pane = tk.PanedWindow(self.root, orient=tk.HORIZONTAL, sashwidth=6)
+        self.main_pane.pack(fill=tk.BOTH, expand=True, padx=12, pady=10)
 
-        self.line_numbers = LineNumberCanvas(editor_container, self.code_editor, width=44, bg="#21222c", highlightthickness=0, bd=0)
+        # LEFT PANE: Editor + Line Number Gutter
+        self.left_frame = tk.Frame(self.main_pane)
+        self.editor_label = tk.Label(
+            self.left_frame,
+            text="MiniLang Source Code Input (Live Auto-Analyze)",
+            font=("Segoe UI", 10, "bold"),
+        )
+        self.editor_label.pack(anchor="w", pady=(0, 5))
+
+        self.editor_container = tk.Frame(self.left_frame, bd=1)
+        self.editor_container.pack(fill=tk.BOTH, expand=True)
+
+        self.code_editor = tk.Text(
+            self.editor_container,
+            font=("Consolas", 11),
+            undo=True,
+            padx=10,
+            pady=10,
+            bd=0,
+        )
+        self.code_editor.tag_configure("keyword", font=("Consolas", 11, "bold"))
+        self.code_editor.tag_configure("comment", font=("Consolas", 11, "italic"))
+        self.code_editor.tag_configure("lexical_error", underline=True)
+
+        self.line_numbers = LineNumberCanvas(
+            self.editor_container, self.code_editor, width=44, highlightthickness=0, bd=0
+        )
         self.line_numbers.pack(side=tk.LEFT, fill=tk.Y)
         self.code_editor.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        self.scrollbar = ttk.Scrollbar(editor_container, command=self.on_editor_scroll)
+        self.scrollbar = ttk.Scrollbar(self.editor_container, command=self.on_editor_scroll)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.code_editor.config(yscrollcommand=self.on_text_yscroll)
 
@@ -111,65 +213,189 @@ END"""
         for event in ("<MouseWheel>", "<ButtonRelease-1>", "<Configure>"):
             self.code_editor.bind(event, self.line_numbers.redraw)
 
-        main_pane.add(left_frame, width=430)
+        self.main_pane.add(self.left_frame, width=430)
 
-        right_pane = tk.PanedWindow(main_pane, orient=tk.VERTICAL, bg="#1e1e2e", sashwidth=6)
+        # RIGHT PANE: Output Panels
+        self.right_pane = tk.PanedWindow(self.main_pane, orient=tk.VERTICAL, sashwidth=6)
 
-        token_frame = tk.Frame(right_pane, bg="#1e1e2e")
-        self.token_header = tk.Label(token_frame, text="Recognized Tokens (0) — Click any row to inspect DFA trace", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#a6e3a1")
+        self.token_frame = tk.Frame(self.right_pane)
+        self.token_header = tk.Label(
+            self.token_frame,
+            text="Recognized Tokens (0) — Click any row to inspect DFA trace",
+            font=("Segoe UI", 10, "bold"),
+        )
         self.token_header.pack(anchor="w", pady=(0, 5))
-        tree_container = tk.Frame(token_frame)
+
+        tree_container = tk.Frame(self.token_frame)
         tree_container.pack(fill=tk.BOTH, expand=True)
 
         self.token_tree = ttk.Treeview(tree_container, columns=("idx", "line", "col", "lexeme", "type"), show="headings")
         for col, title, w in [("idx", "#", 40), ("line", "Line", 50), ("col", "Col", 50), ("lexeme", "Lexeme", 180), ("type", "Token Category", 160)]:
             self.token_tree.heading(col, text=title)
             self.token_tree.column(col, width=w, anchor="center" if col in {"idx", "line", "col"} else "w")
-        for tag, color in [("KEYWORD", "#ff79c6"), ("IDENTIFIER", "#8be9fd"), ("STRING_LITERAL", "#f1fa8c"), ("INT_LITERAL", "#bd93f9"), ("ASSIGN_OP", "#ffb86c"), ("RETURN_ARROW", "#ffb86c"), ("DELIMITER", "#f8f8f2")]:
-            self.token_tree.tag_configure(tag, foreground=color)
+
         self.token_tree.bind("<<TreeviewSelect>>", self.on_token_select)
         tree_scroll = ttk.Scrollbar(tree_container, orient=tk.VERTICAL, command=self.token_tree.yview)
         self.token_tree.configure(yscrollcommand=tree_scroll.set)
         self.token_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
-        right_pane.add(token_frame, height=275)
+        self.right_pane.add(self.token_frame, height=275)
 
-        trace_frame = tk.Frame(right_pane, bg="#1e1e2e")
-        self.trace_header = tk.Label(trace_frame, text="DFA State Transition Trace", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#89dceb")
+        self.trace_frame = tk.Frame(self.right_pane)
+        self.trace_header = tk.Label(
+            self.trace_frame,
+            text="DFA State Transition Trace",
+            font=("Segoe UI", 10, "bold"),
+        )
         self.trace_header.pack(anchor="w", pady=(0, 5))
-        self.trace_box = tk.Text(trace_frame, font=("Consolas", 10), bg="#181825", fg="#89dceb", height=5, padx=10, pady=8, bd=0, state=tk.DISABLED)
+        self.trace_box = tk.Text(
+            self.trace_frame, font=("Consolas", 10), height=5, padx=10, pady=8, bd=0, state=tk.DISABLED
+        )
         self.trace_box.pack(fill=tk.BOTH, expand=True)
-        right_pane.add(trace_frame, height=150)
+        self.right_pane.add(self.trace_frame, height=150)
 
-        error_frame = tk.Frame(right_pane, bg="#1e1e2e")
-        self.error_header = tk.Label(error_frame, text="Lexical Errors (0) — Click any row to inspect error path & jump to line", font=("Segoe UI", 10, "bold"), bg="#1e1e2e", fg="#f38ba8")
+        self.error_frame = tk.Frame(self.right_pane)
+        self.error_header = tk.Label(
+            self.error_frame,
+            text="Lexical Errors (0) — Click any row to inspect error path & jump to line",
+            font=("Segoe UI", 10, "bold"),
+        )
         self.error_header.pack(anchor="w", pady=(0, 5))
-        err_container = tk.Frame(error_frame)
+
+        err_container = tk.Frame(self.error_frame)
         err_container.pack(fill=tk.BOTH, expand=True)
 
         self.error_tree = ttk.Treeview(err_container, columns=("idx", "line", "col", "lexeme", "msg"), show="headings", height=4)
         for col, title, w in [("idx", "#", 40), ("line", "Line", 50), ("col", "Col", 50), ("lexeme", "Invalid Lexeme", 130), ("msg", "Error Description", 230)]:
             self.error_tree.heading(col, text=title)
             self.error_tree.column(col, width=w, anchor="center" if col in {"idx", "line", "col"} else "w")
-        self.error_tree.tag_configure("ERROR", foreground="#f38ba8")
+
         self.error_tree.bind("<<TreeviewSelect>>", self.on_error_select)
         err_scroll = ttk.Scrollbar(err_container, orient=tk.VERTICAL, command=self.error_tree.yview)
         self.error_tree.configure(yscrollcommand=err_scroll.set)
         self.error_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         err_scroll.pack(side=tk.RIGHT, fill=tk.Y)
-        right_pane.add(error_frame)
-        main_pane.add(right_pane)
+        self.right_pane.add(self.error_frame)
+        self.main_pane.add(self.right_pane)
 
+        # Status Bar
         self.status_var = tk.StringVar(value="Ready.")
-        tk.Label(self.root, textvariable=self.status_var, bg="#181825", fg="#a6adc8", anchor="w", padx=12, pady=5, font=("Segoe UI", 9)).pack(fill=tk.X, side=tk.BOTTOM)
+        self.status_bar = tk.Label(
+            self.root,
+            textvariable=self.status_var,
+            anchor="w",
+            padx=12,
+            pady=5,
+            font=("Segoe UI", 9),
+        )
+        self.status_bar.pack(fill=tk.X, side=tk.BOTTOM)
+
+    def toggle_theme(self):
+        self.current_theme = "light" if self.current_theme == "dark" else "dark"
+        self.apply_theme()
+
+    def apply_theme(self):
+        t = self.THEMES[self.current_theme]
+
+        # Root, panes & frames
+        self.root.configure(bg=t["bg"])
+        self.header.configure(bg=t["header_bg"])
+        self.btn_frame.configure(bg=t["header_bg"])
+        self.title_label.configure(bg=t["header_bg"], fg=t["title_fg"])
+        self.theme_btn.configure(text=t["toggle_text"], bg=t["toggle_bg"])
+
+        for pane in (self.main_pane, self.right_pane):
+            pane.configure(bg=t["bg"])
+        for frame in (self.left_frame, self.token_frame, self.trace_frame, self.error_frame):
+            frame.configure(bg=t["bg"])
+
+        # Labels & status bar
+        self.editor_label.configure(bg=t["bg"], fg=t["label_fg"])
+        self.token_header.configure(bg=t["bg"], fg=t["token_header"])
+        self.error_header.configure(bg=t["bg"], fg=t["error_header"])
+        self.trace_header.configure(
+            bg=t["bg"], fg=t["error_header"] if self.last_trace_is_error else t["trace_fg"]
+        )
+        self.status_bar.configure(bg=t["header_bg"], fg=t["status_fg"])
+
+        # Editor & line numbers
+        self.editor_container.configure(bg=t["tree_head_bg"])
+        self.code_editor.configure(
+            bg=t["editor_bg"],
+            fg=t["editor_fg"],
+            insertbackground=t["editor_fg"],
+            selectbackground=t["editor_select"],
+        )
+        self.line_numbers.configure(bg=t["gutter_bg"])
+        self.line_numbers.fg_color = t["gutter_fg"]
+        self.line_numbers.redraw()
+
+        # Editor syntax & error tags
+        self.code_editor.tag_configure("keyword", foreground=t["kw"])
+        self.code_editor.tag_configure("string", foreground=t["str"])
+        self.code_editor.tag_configure("number", foreground=t["num"])
+        self.code_editor.tag_configure("operator", foreground=t["op"])
+        self.code_editor.tag_configure("comment", foreground=t["comment"])
+        self.code_editor.tag_configure("lexical_error", foreground=t["error_header"], background=t["error_bg"])
+        self.code_editor.tag_raise("string")
+        self.code_editor.tag_raise("comment")
+        self.code_editor.tag_raise("lexical_error")
+
+        # Trace box
+        self.trace_box.configure(
+            bg=t["trace_bg"],
+            fg=t["error_header"] if self.last_trace_is_error else t["trace_fg"],
+        )
+
+        # Treeview tables & category colors
+        self.style.configure(
+            "Treeview",
+            background=t["tree_bg"],
+            foreground=t["tree_fg"],
+            fieldbackground=t["tree_bg"],
+            rowheight=26,
+            font=("Consolas", 10),
+        )
+        self.style.configure(
+            "Treeview.Heading",
+            background=t["tree_head_bg"],
+            foreground=t["tree_head_fg"],
+            font=("Segoe UI", 10, "bold"),
+        )
+        self.style.map("Treeview", background=[("selected", t["tree_select"])])
+
+        for tag, color_key in [
+            ("KEYWORD", "kw"),
+            ("IDENTIFIER", "id"),
+            ("STRING_LITERAL", "str"),
+            ("INT_LITERAL", "num"),
+            ("ASSIGN_OP", "op"),
+            ("RETURN_ARROW", "op"),
+            ("DELIMITER", "delim"),
+        ]:
+            self.token_tree.tag_configure(tag, foreground=t[color_key])
+        self.error_tree.tag_configure("ERROR", foreground=t["error_header"])
 
     def bind_shortcuts(self):
         self.root.bind("<Control-o>", lambda e: self.open_file())
         self.root.bind("<Control-s>", lambda e: self.export_results())
+        self.root.bind("<Control-t>", lambda e: self.toggle_theme())
         self.root.bind("<Control-Return>", lambda e: self.analyze_code())
 
-    def make_button(self, parent, text, bg, fg, cmd):
-        return tk.Button(parent, text=text, bg=bg, fg=fg, activebackground=bg, font=("Segoe UI", 9, "bold"), relief=tk.FLAT, padx=9, pady=5, cursor="hand2", command=cmd)
+    def make_button(self, parent, text, bg_color, fg_color, command):
+        return tk.Button(
+            parent,
+            text=text,
+            bg=bg_color,
+            fg=fg_color,
+            activebackground=bg_color,
+            font=("Segoe UI", 9, "bold"),
+            relief=tk.FLAT,
+            padx=9,
+            pady=5,
+            cursor="hand2",
+            command=command,
+        )
 
     def on_editor_scroll(self, *args):
         self.code_editor.yview(*args)
@@ -190,8 +416,10 @@ END"""
             self.code_editor.tag_remove(tag, "1.0", tk.END)
         for tag, pattern in [
             ("keyword", r"\b(START|END|FUNCTION|RETURN|LET|INT|STR|VOID)\b"),
-            ("number", r"\b\d+\b"), ("operator", r"(->|=)"),
-            ("string", r'"[^"\n]*"'), ("comment", r"//[^\n]*"),
+            ("number", r"\b\d+\b"),
+            ("operator", r"(->|=)"),
+            ("string", r'"[^"\n]*"'),
+            ("comment", r"//[^\n]*"),
         ]:
             for match in re.finditer(pattern, content):
                 self.code_editor.tag_add(tag, f"1.0 + {match.start()} chars", f"1.0 + {match.end()} chars")
@@ -208,8 +436,11 @@ END"""
         self.analyze_code()
 
     def display_trace(self, title, steps, is_error=False):
-        self.trace_header.config(text=f"DFA State Transition Trace — {title}", fg="#f38ba8" if is_error else "#89dceb")
-        self.trace_box.config(state=tk.NORMAL, fg="#f38ba8" if is_error else "#89dceb")
+        self.last_trace_is_error = is_error
+        t = self.THEMES[self.current_theme]
+        color = t["error_header"] if is_error else t["trace_fg"]
+        self.trace_header.config(text=f"DFA State Transition Trace — {title}", fg=color)
+        self.trace_box.config(state=tk.NORMAL, fg=color)
         self.trace_box.delete("1.0", tk.END)
         for i, step in enumerate(steps, 1):
             self.trace_box.insert(tk.END, f"Step {i}: {step}\n")
