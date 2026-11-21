@@ -55,3 +55,26 @@ def test_dfa_trace_recorded_for_tokens():
     for tok in tokens:
         assert len(tok.trace) > 0
         assert any("q0" in step for step in tok.trace)
+
+
+def test_lexical_errors_and_recovery():
+    code = """START
+    123func("Ana");
+    display("Unclosed string);
+    LET gpa = 98.75;
+    FUNCTION bad(x: INT) - VOID {
+        / stray slash
+        LET y = 10 @ 5;
+    }
+END"""
+    tokens, errors = MiniLangLexer(code).tokenize()
+
+    assert len(errors) >= 6
+    for err in errors:
+        assert len(err.trace) > 0
+        assert any("qe" in step for step in err.trace)
+
+    valid_lexemes = [t.lexeme for t in tokens]
+    assert "START" in valid_lexemes
+    assert "FUNCTION" in valid_lexemes
+    assert "END" in valid_lexemes
