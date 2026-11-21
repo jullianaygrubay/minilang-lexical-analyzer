@@ -32,3 +32,26 @@ def test_string_literal_and_comment_skipping():
     lexemes = [t.lexeme for t in tokens]
     assert '"Hello CS302"' in lexemes
     assert "// This comment should be ignored" not in lexemes
+
+
+def test_line_and_column_positions():
+    code = "START\n    LET score = 100;\nEND"
+    tokens, errors = MiniLangLexer(code).tokenize()
+
+    assert errors == []
+    by_lexeme = {t.lexeme: (t.line, t.column) for t in tokens}
+    assert by_lexeme["START"] == (1, 1)
+    assert by_lexeme["LET"] == (2, 5)
+    assert by_lexeme["score"] == (2, 9)
+    assert by_lexeme["100"] == (2, 17)
+    assert by_lexeme["END"] == (3, 1)
+
+
+def test_dfa_trace_recorded_for_tokens():
+    code = 'greet("Alex", 95);'
+    tokens, errors = MiniLangLexer(code).tokenize()
+
+    assert errors == []
+    for tok in tokens:
+        assert len(tok.trace) > 0
+        assert any("q0" in step for step in tok.trace)
