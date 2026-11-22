@@ -14,9 +14,9 @@ An explicit **Deterministic Finite Automaton (DFA)** lexical analyzer and intera
 
 ## Screenshots
 
-| Desktop IDE — Valid Program | Lexical Error & Recovery View |
+| Dark Mode — Valid Program (`Ctrl+T`) | Light Mode — Lexical Error Recovery (`Ctrl+T`) |
 | :---: | :---: |
-| ![Desktop IDE Valid Program](assets/screenshots/ide-valid.png) | ![Lexical Error View](assets/screenshots/ide-errors.png) |
+| ![Dark Mode Valid Program](assets/screenshots/ide-valid-dark.png) | ![Light Mode Lexical Error View](assets/screenshots/ide-errors-light.png) |
 | *Live syntax highlighting, DFA trace & token table* | *Panic-mode error detection (`qe`) and diagnostics* |
 
 ## DFA State Transition Diagram
