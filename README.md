@@ -12,6 +12,13 @@ An explicit **Deterministic Finite Automaton (DFA)** lexical analyzer and intera
 - **Automated Testing & CI:** Includes a `pytest` unit test suite (`tests/test_lexer.py`) integrated with GitHub Actions.
 - **Standalone Windows Build:** Can be packaged into a single executable (`MiniLangAnalyzer.exe`) via PyInstaller without requiring Python on the target machine.
 
+## Screenshots
+
+| Desktop IDE — Valid Program | Lexical Error & Recovery View |
+| :---: | :---: |
+| ![Desktop IDE Valid Program](assets/screenshots/ide-valid.png) | ![Lexical Error View](assets/screenshots/ide-errors.png) |
+| *Live syntax highlighting, DFA trace & token table* | *Panic-mode error detection (`qe`) and diagnostics* |
+
 ## DFA State Transition Diagram
 
 ```mermaid
