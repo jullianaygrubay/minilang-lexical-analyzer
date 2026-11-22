@@ -2,11 +2,15 @@
 
 [![Run MiniLang Lexer Tests](https://github.com/jullianaygrubay/minilang-lexical-analyzer/actions/workflows/tests.yml/badge.svg)](https://github.com/jullianaygrubay/minilang-lexical-analyzer/actions/workflows/tests.yml)
 
-An interactive **Deterministic Finite Automaton (DFA)** lexical analyzer and desktop IDE built with Python and Tkinter for **MiniLang**.
+An explicit **Deterministic Finite Automaton (DFA)** lexical analyzer and interactive desktop IDE built with Python and Tkinter.
 
 ## Features
-- **Explicit DFA Engine (`lexer.py`):** Simulates states `q0`–`q8` and error sink `qe` with step-by-step transition logging.
-- **Interactive Desktop IDE (`minilang_gui.py`):** Synchronized line numbers, live syntax highlighting, debounced auto-analysis, inline red error underlines with click-to-jump, Light/Dark themes (`Ctrl+T`), and CSV/TXT report export.
+
+- **Explicit DFA Scanner (`lexer.py`):** Scans MiniLang source code across states `q0`–`q8` with panic-mode error recovery (`qe`) and line/column position tracking.
+- **Interactive Desktop IDE (`minilang_gui.py`):** Features a code editor with synchronized line numbers, live syntax highlighting, debounced auto-analysis, inline error jump-to-line, Light/Dark theme switching (`Ctrl+T`), sample program loaders, and token/error inspection.
+- **Export & Reporting:** Export lexical analysis results and token tables to CSV or TXT formats.
+- **Automated Testing & CI:** Includes a `pytest` unit test suite (`tests/test_lexer.py`) integrated with GitHub Actions.
+- **Standalone Windows Build:** Can be packaged into a single executable (`MiniLangAnalyzer.exe`) via PyInstaller without requiring Python on the target machine.
 
 ## DFA State Transition Diagram
 
