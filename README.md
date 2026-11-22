@@ -83,9 +83,24 @@ flowchart LR
 | **LEXICAL_ERROR** | `qe` | Unclosed strings, invalid symbols, or malformed identifiers (e.g. `123func`, `95.50`, `+`) | `123func`, `"Unclosed string` |
 
 ## Quick Start
+
+### 1. Run the Tkinter Desktop IDE
 ```bash
 python minilang_gui.py
 ```
+
+### 2. Run Unit & Integration Tests
+```bash
+pytest -v
+```
+
+### 3. Build Standalone Windows Executable (`MiniLangAnalyzer.exe`)
+```powershell
+pip install pyinstaller
+pyinstaller --noconfirm --onefile --windowed --name "MiniLangAnalyzer" --add-data "samples;samples" minilang_gui.py
+```
+
+The standalone executable will be generated at `dist\MiniLangAnalyzer.exe`.
 
 ## Sample Files
 - `samples/valid_demo.minilang` — Valid MiniLang functions, typed parameters, return arrows, and nested calls.
