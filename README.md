@@ -90,3 +90,19 @@ python minilang_gui.py
 ## Sample Files
 - `samples/valid_demo.minilang` — Valid MiniLang functions, typed parameters, return arrows, and nested calls.
 - `samples/error_demo.minilang` — Intentional lexical edge cases for testing DFA error sink (`qe`) recovery.
+
+## Project Structure
+
+```text
+minilang-lexical-analyzer/
+├── .github/workflows/tests.yml   # GitHub Actions CI workflow
+├── assets/screenshots/           # Desktop IDE screenshots
+├── samples/
+│   ├── valid_demo.minilang       # Valid MiniLang test program
+│   └── error_demo.minilang       # Lexical error & panic-mode recovery demo
+├── tests/
+│   └── test_lexer.py             # Pytest unit & integration test suite
+├── lexer.py                      # Core DFA lexical analyzer
+├── minilang_gui.py               # Tkinter desktop IDE & DFA tracer
+└── README.md
+```
